@@ -1,0 +1,45 @@
+name: Daily Commit
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-commit
+  cancel-in-progress: false
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Update heartbeat file
+        run: |
+          file="daily-commit.md"
+          ts=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          echo "Last run: ${ts}" > "${file}"
+
+      - name: Commit changes (if any)
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: daily heartbeat $(date -u +'%Y-%m-%d')"
+
+      - name: Push changes
+        run: |
+          git push
+
